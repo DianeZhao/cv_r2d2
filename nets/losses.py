@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from nets.sampler import *
 from nets.repeatability_loss import *
-from nets.reliability_loss import *
+from nets.reliability_loss_origin import *
 from nets.my_reliabilityloss import *
 
 

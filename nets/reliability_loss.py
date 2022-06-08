@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from nets.ap_loss import APLoss
+from my_reliabilityloss import HardnetLoss
 
 
 class PixelAPLoss (nn.Module):
@@ -19,38 +20,14 @@ class PixelAPLoss (nn.Module):
     """
     def __init__(self, sampler, nq=20):
         nn.Module.__init__(self)
-        self.aploss = APLoss(nq, min=0, max=1, euc=False)
-        self.name = 'pixAP'
-        self.sampler = sampler
+        self.hardloss=HardnetLoss(crop_pixel=39)
+        # self.aploss = APLoss(nq, min=0, max=1, euc=False)
+        # self.name = 'pixAP'
+        # self.sampler = sampler
 
-    def loss_from_ap(self, ap, rel):
-        return 1 - ap
+    # def loss_from_ap(self, ap, rel):
+    #     return 1 - ap
 
-    def forward(self, descriptors, aflow, **kw):
-        # subsample things
-        #print("reliability",kw.get('reliability')[0].size())
-        scores, gt, msk, qconf = self.sampler(descriptors, kw.get('reliability'), aflow)#reliability torch.Size([8, 1, 192, 192])
-        # print("descriptor",type(descriptors))#list [8, 128, 192, 192]
-        #print("descriptor",descriptors[0])#[8, 128, 192, 192]
-        #print("descriptor",descriptors[1].size())#[8, 128, 192, 192]
-    
-        # print("aflwo",type(aflow))#torch
-        # print("aflwo",aflow.size())#aflwo torch.Size([8, 2, 192, 192])
-        # print("aflwo",len(aflow[1]))#2
-        #print("aflwo",len(aflow[2]))#8
-        
-        
-        # compute pixel-wise AP
-        n = qconf.numel()
-        if n == 0: return 0
-        scores, gt = scores.view(n,-1), gt.view(n,-1)
-        ap = self.aploss(scores, gt).view(msk.shape)
-
-        pixel_loss = self.loss_from_ap(ap, qconf)
-        
-        loss = pixel_loss[msk].mean()
-        print("loss",loss)
-        return loss
 
 
 class ReliabilityLoss (PixelAPLoss):
@@ -59,14 +36,24 @@ class ReliabilityLoss (PixelAPLoss):
     """
     def __init__(self, sampler, base=0.5, **kw):
         PixelAPLoss.__init__(self, sampler, **kw)
-        assert 0 <= base < 1
-        self.base = base
-        self.name = 'reliability'
+        
+        
+    def forward(self, descriptors, aflow, **kw):
+        loss=self.hardloss(descriptors, aflow, kw)
+      
+        print("loss",loss)
+        return loss
+        
+        # assert 0 <= base < 1
+        # self.base = base
+        # self.name = 'reliability'
 
-    def loss_from_ap(self, ap, rel):
-        # print("rel",type(rel))
-        # print("rel",rel.size())#rel torch.Size([8, 400])
-        return 1 - ap*rel - (1-rel)*self.base
+    # def loss_from_ap(self, ap, rel):
+    #     # print("ap",type(ap))#
+    #     # print("ap",ap.size())
+    #     # print("rel",type(rel))
+    #     # print("rel",rel.size())#rel torch.Size([8, 400])
+    #     return 1 - ap*rel - (1-rel)*self.base
 
 
 
