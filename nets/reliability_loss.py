@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from nets.ap_loss import APLoss
-from my_reliabilityloss import HardnetLoss
+from nets.my_reliabilityloss import HardnetLoss
 
 
 class PixelAPLoss (nn.Module):

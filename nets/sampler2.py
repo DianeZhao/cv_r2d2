@@ -14,7 +14,7 @@ import torch.nn.functional as F
 """
 
 
-class FullSampler(nn.Module):#########
+class FullSampler(nn.Module):
     """ all pixels are selected
         - feats: keypoint descriptors
         - confs: reliability values
@@ -32,10 +32,9 @@ class FullSampler(nn.Module):#########
         grid[:,:,:,1] *= 2/(H-1)
         grid -= 1
         grid[torch.isnan(grid)] = 9e9 # invalids
-        # print("grid",grid.size())
         return grid
     
-    def _warp(self, feats, confs, aflow):############################what is confs?
+    def _warp(self, feats, confs, aflow):
         if isinstance(aflow, tuple): return aflow # result was precomputed
         feat1, feat2 = feats
         conf1, conf2 = confs if confs else (None,None)
@@ -46,9 +45,9 @@ class FullSampler(nn.Module):#########
         assert conf1.shape == conf2.shape == (B, 1, H, W) if confs else True
 
         # warp img2 to img1
-        grid = self._aflow_to_grid(aflow)##?
+        grid = self._aflow_to_grid(aflow)
         ones2 = feat2.new_ones(feat2[:,0:1].shape)
-        feat2to1 = F.grid_sample(feat2, grid, mode=self.mode, padding_mode=self.padding)#feat2作为输入，应用grid
+        feat2to1 = F.grid_sample(feat2, grid, mode=self.mode, padding_mode=self.padding)
         mask2to1 = F.grid_sample(ones2, grid, mode='nearest', padding_mode='zeros')
         conf2to1 = F.grid_sample(conf2, grid, mode=self.mode, padding_mode=self.padding) \
                    if confs else None
@@ -58,29 +57,27 @@ class FullSampler(nn.Module):#########
         B, two, H, W = aflow.shape
         assert two == 2
         
-        Y = torch.arange(H, device=aflow.device)#[0-H]
-        X = torch.arange(W, device=aflow.device)#[0-W]
-        XY = torch.stack(torch.meshgrid(Y,X)[::-1], dim=0)#二维
+        Y = torch.arange(H, device=aflow.device)
+        X = torch.arange(W, device=aflow.device)
+        XY = torch.stack(torch.meshgrid(Y,X)[::-1], dim=0)
         XY = XY[None].expand(B, 2, H, W).float()
         
         grid = self._aflow_to_grid(aflow)
         XY2 = F.grid_sample(XY, grid, mode='bilinear', padding_mode='zeros')
-        # print("XY2",XY2.size())
         return XY, XY2
 
 
 
-class SubSampler (FullSampler):###############
+class SubSampler (FullSampler):
     """ pixels are selected in an uniformly spaced grid
     """
     def __init__(self, border, subq, subd, perimage=False):
         FullSampler.__init__(self)
-        assert subq % subd == 0, 'subq must be multiple of subd'#subquery
+        assert subq % subd == 0, 'subq must be multiple of subd'
         self.sub_q = subq
         self.sub_d = subd
         self.border = border
         self.perimage = perimage
-
 
     def __repr__(self):
         return "SubSampler(border=%d, subq=%d, subd=%d, perimage=%d)" % (
@@ -92,20 +89,20 @@ class SubSampler (FullSampler):###############
         feat2, mask2, conf2 = self._warp(feats, confs, aflow)
         
         # subsample img1
-        slq = slice(self.border, -self.border or None, self.sub_q)#?slice
+        slq = slice(self.border, -self.border or None, self.sub_q)
         feat1 = feat1[:, :, slq, slq]
         conf1 = conf1[:, :, slq, slq] if confs else None
         # subsample img2
-        sld = slice(self.border, -self.border or None, self.sub_d)#start,end,stride
-        feat2 = feat2[:, :, sld, sld]#B,C,H,W
+        sld = slice(self.border, -self.border or None, self.sub_d)
+        feat2 = feat2[:, :, sld, sld]
         mask2 = mask2[:, :, sld, sld]
         conf2 = conf2[:, :, sld, sld] if confs else None
         
-        B, D, Hq, Wq = feat1.shape#new shape
+        B, D, Hq, Wq = feat1.shape
         B, D, Hd, Wd = feat2.shape
         
         # compute gt
-        if self.perimage or self.sub_q != self.sub_d:#数量不等
+        if self.perimage or self.sub_q != self.sub_d:
             # compute ground-truth by comparing pixel indices
             f = feats[0][0:1,0] if self.perimage else feats[0][:,0]
             idxs = torch.arange(f.numel(), dtype=torch.int64, device=feat1.device).view(f.shape)
@@ -137,16 +134,8 @@ class SubSampler (FullSampler):###############
         return scores, gt, mask2, qconf
 
 
-        """
-        >> Creating loss = MultiLoss(
-        1, ReliabilityLoss(NghSampler2(ngh=7, subq=-8, subd=1, pos_d=3, neg_d=5, border=16,
-                            subd_neg=-8,maxpool_pos=True), base=0.5, nq=20),
-        1, CosimLoss(N=16),
-        1, PeakyLoss(N=16))
 
-        
-        """
-class NghSampler (FullSampler):#####used
+class NghSampler (FullSampler):
     """ all pixels in a small neighborhood
     """
     def __init__(self, ngh, subq=1, subd=1, ignore=1, border=None):
@@ -178,9 +167,7 @@ class NghSampler (FullSampler):#####used
         qconf = (self.trans(conf1,0,0) + self.trans(conf2,0,0)) / 2 if confs else None
         mask2 = self.trans(mask2,0,0)
         scores_at = lambda i,j: (qfeat * self.trans(feat2,i,j)).sum(dim=1)
-        # print("qfeat",qfeat.size())
-        # print("qconf",qconf.size())
-        # print("scores_at",scores_at.size())
+        
         # compute scores for all neighbors
         B, D = feat1.shape[:2]
         min_d = self.ignore**2

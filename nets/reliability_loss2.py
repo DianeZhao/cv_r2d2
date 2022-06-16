@@ -28,17 +28,7 @@ class PixelAPLoss (nn.Module):
 
     def forward(self, descriptors, aflow, **kw):
         # subsample things
-        #print("reliability",kw.get('reliability')[0].size())
-        scores, gt, msk, qconf = self.sampler(descriptors, kw.get('reliability'), aflow)#reliability torch.Size([8, 1, 192, 192])
-        # print("descriptor",type(descriptors))#list [8, 128, 192, 192]
-        #print("descriptor",descriptors[0])#[8, 128, 192, 192]
-        #print("descriptor",descriptors[1].size())#[8, 128, 192, 192]
-    
-        # print("aflwo",type(aflow))#torch
-        # print("aflwo",aflow.size())#aflwo torch.Size([8, 2, 192, 192])
-        # print("aflwo",len(aflow[1]))#2
-        #print("aflwo",len(aflow[2]))#8
-        
+        scores, gt, msk, qconf = self.sampler(descriptors, kw.get('reliability'), aflow)
         
         # compute pixel-wise AP
         n = qconf.numel()
@@ -49,7 +39,6 @@ class PixelAPLoss (nn.Module):
         pixel_loss = self.loss_from_ap(ap, qconf)
         
         loss = pixel_loss[msk].mean()
-        # print("loss",loss)
         return loss
 
 
@@ -64,10 +53,6 @@ class ReliabilityLoss (PixelAPLoss):
         self.name = 'reliability'
 
     def loss_from_ap(self, ap, rel):
-        # print("ap",type(ap))#
-        # print("ap",ap.size())
-        # print("rel",type(rel))
-        # print("rel",rel.size())#rel torch.Size([8, 400])
         return 1 - ap*rel - (1-rel)*self.base
 
 

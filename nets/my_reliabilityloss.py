@@ -1,5 +1,6 @@
 import pdb
 from queue import Full
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from  nets.sampler import FullSampler
@@ -7,7 +8,7 @@ import random
 from mlosses import distance_matrix_vector
 from mlosses import loss_HardNet
 #####warp,and get ground truth match
-def RandomSubsample(feat1,feat2to1,crop_pixel=39):
+def RandomSubsample(feat1,feat2to1,reliability,crop_pixel=39):
 
     """
     feat1:  (B, C, H, W)   pixel-wise features extracted from img1
@@ -19,8 +20,9 @@ def RandomSubsample(feat1,feat2to1,crop_pixel=39):
     center_w=random.randint(length,192-length)
     feat1_sub=feat1[:,:, center_w-length:center_w+length, center_h-length:center_h+length]
     feat2_sub=feat2to1[:,:, center_w-length:center_w+length, center_h-length:center_h+length]
+    reliability_sub=reliability[:,:, center_w-length:center_w+length, center_h-length:center_h+length]
     
-    return  feat1_sub,feat2_sub
+    return  feat1_sub,feat2_sub,reliability_sub
         
 # def get_distance_matrix(feat1_sub,feat2_sub):
 #     """
@@ -48,18 +50,24 @@ class HardnetLoss (nn.Module):
     def forward(self, descriptors, aflow, **kw):
         # subsample things
         self.reliability=kw.get('reliability')
+        self.reliability1,_=kw.get("reliability")
         self.sampler=FullSampler()#in order to use the warp function
         self.feat2to1, _ ,self. conf2to1=self.sampler._warp(descriptors,self.reliability,aflow)#def _warp(self, feats, confs, aflow)
         self.feat1,_=descriptors#to get feat of image1
-        feat1_sub,feat2_sub=RandomSubsample(self.feat1,self.feat2to1,crop_pixel=39)
+        feat1_sub,feat2_sub,reliability_sub=RandomSubsample(self.feat1,self.feat2to1,self.reliability1,crop_pixel=39)
         B,C,H,W=feat1_sub.size()
         feat1_reshape = feat1_sub.permute(0,2,3,1).clone().reshape(B*H*W,C)
         feat2_reshape = feat2_sub.permute(0,2,3,1).clone().reshape(B*H*W,C)
         mtx=distance_matrix_vector(feat1_reshape,feat2_reshape)
-        print("mtx",mtx.size())
+        # print("mtx",mtx.size())
         loss=loss_HardNet(feat1_reshape, feat2_reshape, anchor_swap = False, anchor_ave = False,\
-            margin = 1.0, batch_reduce = 'min', loss_type = "triplet_margin")
+            margin = 1.0, batch_reduce = 'min', loss_type = "triplet_margin")#get the mtx crop_pix*crop_pixel
+        reliability_sub=torch.flatten(reliability_sub)
+        loss=loss*reliability_sub
+        #print("loss mtx",loss)
         
      
         #print("loss",loss)
+        loss = torch.mean(loss)
+        #print("loss tensorss",loss)
         return loss
