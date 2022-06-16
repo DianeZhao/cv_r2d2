@@ -5,7 +5,7 @@ This repository is made as part of the assignment for Seminar Computer Vision by
 **Author:Ranbao Deng, (5460069), R.Deng@student.tudelft.nl**
 **Author:Danning Zhao, (5459583), D.Zhao-3@student.tudelft.nl**
 
-This repository is based on [R2D2](https://github.com/naver/r2d2) and [D2-Net](https://github.com/mihaidusmanu/d2-net). We focused on the trainer, nets, losses and visualizations. To see our results, please follow the Getting stated and Evaluation on HPatches part.
+This repository is based on [R2D2](https://github.com/naver/r2d2) and [D2-Net](https://github.com/mihaidusmanu/d2-net). We focused on the trainer, nets, losses and visualizations. To see our results, please follow the **Getting stated** and **Evaluation on HPatches** parts.
 
 This repository contains the implementation of the following [paper](https://europe.naverlabs.com/research/publications/r2d2-reliable-and-repeatable-detectors-and-descriptors-for-joint-sparse-local-keypoint-detection-and-feature-extraction/):
 
