@@ -71,7 +71,7 @@ def loss_L2Net(anchor, positive, anchor_swap = False,  margin = 1.0, loss_type =
     eps = 1e-8
     dist_matrix = distance_matrix_vector(anchor, positive)
     eye = torch.autograd.Variable(torch.eye(dist_matrix.size(1))).cuda()
-    print(eye)
+    # print(eye)
 
     # steps to filter out same patches that occur in distance matrix as negatives
     pos1 = torch.diag(dist_matrix)
@@ -103,13 +103,13 @@ def loss_HardNet(anchor, positive, anchor_swap = False, anchor_ave = False,\
     eps = 1e-8
     dist_matrix = distance_matrix_vector(anchor, positive) +eps
     eye = torch.autograd.Variable(torch.eye(dist_matrix.size(1)))#.cuda()
-    print("dist_mtx",dist_matrix)
+    # print("dist_mtx",dist_matrix)
 
     # steps to filter out same patches that occur in distance matrix as negatives
     pos1 = torch.diag(dist_matrix)
-    print("pos1",pos1)#values on the diagonal
+    # print("pos1",pos1)#values on the diagonal
     dist_without_min_on_diag = dist_matrix+eye*10#
-    print("without min",dist_without_min_on_diag)
+    # print("without min",dist_without_min_on_diag)
     #print(dist_without_min_on_diag.ge(0.008))#whether larger than 0.008, true.float()=1, false=0? if false, too close?
     mask = (dist_without_min_on_diag.ge(0.008).float()-1.0)*(-1)#true=0, false=-1*-1=1
     #print("mask",mask)
@@ -122,9 +122,9 @@ def loss_HardNet(anchor, positive, anchor_swap = False, anchor_ave = False,\
         # print("min_neg",min_neg)
         if anchor_swap:
             min_neg2 = torch.min(dist_without_min_on_diag,0)[0]
-            print("min_neg2",min_neg2)
+            # print("min_neg2",min_neg2)
             min_neg = torch.min(min_neg,min_neg2)# find the min beyween them
-            print("min_neg",min_neg)
+            # print("min_neg",min_neg)
         if False:
             dist_matrix_a = distance_matrix_vector(anchor, anchor)+ eps
             dist_matrix_p = distance_matrix_vector(positive,positive)+eps
@@ -160,7 +160,7 @@ def loss_HardNet(anchor, positive, anchor_swap = False, anchor_ave = False,\
         sys.exit(1)
     if loss_type == "triplet_margin":
         loss = torch.clamp(margin + pos - min_neg, min=0.0)#margin 1.0, tolerance
-        print("loss",loss)
+        # print("loss",loss)
     elif loss_type == 'softmax':
         exp_pos = torch.exp(2.0 - pos);
         exp_den = exp_pos + torch.exp(2.0 - min_neg) + eps;
@@ -171,7 +171,7 @@ def loss_HardNet(anchor, positive, anchor_swap = False, anchor_ave = False,\
         print ('Unknown loss type. Try triplet_margin, softmax or contrastive')
         sys.exit(1)
     loss = torch.mean(loss)
-    print(loss)
+    # print(loss)
     return loss
 
 def global_orthogonal_regularization(anchor, negative):

@@ -11,7 +11,7 @@ from tools.dataloader import *
 from nets.patchnet import *
 from nets.losses import *
 
-default_net = "Quad_L2Net_ConfCFS()"
+default_net = "Fast_Quad_L2Net_ConfCFS()" # original Quad_L2Net_ConfCFS()
 
 toy_db_debug = """SyntheticPairDataset(
     ImgFolder('imgs'), 
@@ -55,6 +55,32 @@ default_loss = """MultiLoss(
         1, CosimLoss(N=`N`),
         1, PeakyLoss(N=`N`))"""
 
+default_loss2 = """MultiLoss(
+        1, ReliabilityLoss(`sampler`, base=0.5, nq=20),
+        1, DicesimLoss(N=`N`),
+        1, PeakyLoss(N=`N`))"""
+
+default_loss3 = """MultiLoss(
+        1, ReliabilityLoss(`sampler`, base=0.5, nq=20),
+        1, JaccardsimLoss(N=`N`),
+        1, PeakyLoss(N=`N`))"""
+
+default_loss4 = """MultiLoss(
+        1, ReliabilityLoss(`sampler`, base=0.5, nq=20),
+        1, CzksimLoss(N=`N`),
+        1, PeakyLoss(N=`N`))"""
+
+default_loss5 = """MultiLoss(
+        1, ReliabilityLoss(`sampler`, base=0.5, nq=20),
+        1, SqcsimLoss(N=`N`),
+        1, PeakyLoss(N=`N`))"""
+
+default_loss6 = """MultiLoss(
+        1, HardnetLoss(),
+        1, SqcsimLoss(N=`N`),
+        1, PeakyLoss(N=`N`))"""
+
+
 
 class MyTrainer(trainer.Trainer):
     """ This class implements the network training.
@@ -78,20 +104,20 @@ if __name__ == '__main__':
         choices = set(data_sources.keys()))
     parser.add_argument("--net", type=str, default=default_net, help='network architecture')
 
-    parser.add_argument("--pretrained", type=str, default="", help='pretrained model path')
+    parser.add_argument("--pretrained", type=str, default="./models/faster2d2_WASF_N16.pt", help='pretrained model path') # ./models/faster2d2_WASF_N16.pt
     parser.add_argument("--save-path", type=str, required=True, help='model save_path path')
     
-    parser.add_argument("--loss", type=str, default=default_loss, help="loss function")
+    parser.add_argument("--loss", type=str, default=default_loss2, help="loss function") # original default_loss
     parser.add_argument("--sampler", type=str, default=default_sampler, help="AP sampler")
     parser.add_argument("--N", type=int, default=16, help="patch size for repeatability")
 
-    parser.add_argument("--epochs", type=int, default=25, help='number of training epochs')
-    parser.add_argument("--batch-size", "--bs", type=int, default=8, help="batch size")
+    parser.add_argument("--epochs", type=int, default=5, help='number of training epochs') # original 25
+    parser.add_argument("--batch-size", "--bs", type=int, default=6, help="batch size") # original 8
     parser.add_argument("--learning-rate", "--lr", type=str, default=1e-4)
     parser.add_argument("--weight-decay", "--wd", type=float, default=5e-4)
     
     parser.add_argument("--threads", type=int, default=8, help='number of worker threads')
-    parser.add_argument("--gpu", type=int, nargs='+', default=[-1], help='-1 for CPU')
+    parser.add_argument("--gpu", type=int, nargs='+', default=[0], help='-1 for CPU')
     
     args = parser.parse_args()
     
@@ -113,7 +139,7 @@ if __name__ == '__main__':
     # initialization
     if args.pretrained:
         checkpoint = torch.load(args.pretrained, lambda a,b:a)
-        net.load_pretrained(checkpoint['state_dict'])
+        net.load_state_dict(checkpoint['state_dict']) # load_pretrained initially
         
     # create losses
     loss = args.loss.replace('`sampler`',args.sampler).replace('`N`',str(args.N))
