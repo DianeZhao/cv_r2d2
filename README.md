@@ -1,6 +1,6 @@
 # Repeatable and Reliable Detector and Descriptor with different losses #
 
-This repository is made as part of the assignment for Seminar Computer Vision by Deep Learning (CS4245) at TUDelft.
+This repository is made as part of the assignment for Seminar Computer Vision by Deep Learning (CS4245) at TUDelft. A [blog](https://hackmd.io/mKx4o2N2QKCs6qXL6aQxlw) is made in parallel.
 
 **Author:Ranbao Deng, (5460069), R.Deng@student.tudelft.nl**
 **Author:Danning Zhao, (5459583), D.Zhao-3@student.tudelft.nl**
